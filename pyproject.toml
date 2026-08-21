@@ -1,0 +1,30 @@
+[project]
+name = "shipwright"
+version = "0.1.0"
+description = "Event-driven agent that takes an iOS build from App Store Connect to Waiting for Review, unattended."
+requires-python = ">=3.13"
+dependencies = [
+    "google-adk>=2.7",
+    "google-genai>=2.19",
+    "google-cloud-firestore>=2.20",
+    "google-cloud-secret-manager>=2.22",
+    "google-cloud-pubsub>=2.27",
+    "google-cloud-storage>=2.19",
+    "fastapi>=0.115",
+    "uvicorn>=0.34",
+    "httpx>=0.28",
+    "pyjwt[crypto]>=2.10",
+    "tenacity>=9.0",
+    "pillow>=11.0",
+    "python-dotenv>=1.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["shipwright"]

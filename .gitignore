@@ -1,0 +1,18 @@
+# secrets — never commit
+*.p8
+.env
+.env.*
+!.env.example
+secrets/
+# python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+# build output
+out/
+build/
+*.ipa
+*.xcarchive
+# local webhook captures
+webhook-events/
