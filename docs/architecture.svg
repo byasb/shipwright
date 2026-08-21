@@ -1,0 +1,154 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="1000" viewBox="0 0 1800 1000" font-family="-apple-system, Inter, Helvetica, Arial, sans-serif">
+<defs>
+  <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#444"/></marker>
+  <marker id="ad" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#c0392b"/></marker>
+</defs>
+<rect width="1800" height="1000" fill="#ffffff"/>
+<text x="40" y="48" font-size="30" font-weight="700" fill="#111">Shipwright — build lands in App Store Connect → agent drives it to Waiting for Review</text>
+<text x="40" y="76" font-size="16" fill="#555">Trigger: Apple webhook (nothing typed). Stack: Google ADK · Gemini 3.5 Flash on Vertex AI · Gemma 4 · Cloud Run · Pub/Sub · Firestore · Cloud Storage · Secret Manager · Cloud Scheduler</text>
+
+<!-- Apple column -->
+<rect x="40" y="110" width="300" height="840" rx="16" fill="#f5f5f7" stroke="#c9c9cf"/>
+<text x="60" y="140" font-size="18" font-weight="700" fill="#333"> Apple · App Store Connect</text>
+<rect x="60" y="165" width="260" height="70" rx="10" fill="#fff" stroke="#999"/>
+<text x="190" y="195" font-size="15" text-anchor="middle" font-weight="600">xcodebuild -exportArchive</text>
+<text x="190" y="217" font-size="13" text-anchor="middle" fill="#666">build 2 uploaded → processed</text>
+<rect x="60" y="280" width="260" height="110" rx="10" fill="#fff" stroke="#999"/>
+<text x="190" y="308" font-size="15" text-anchor="middle" font-weight="600">Webhooks (push)</text>
+<text x="190" y="332" font-size="12" text-anchor="middle" fill="#444">BUILD_UPLOAD_STATE_UPDATED</text>
+<text x="190" y="352" font-size="12" text-anchor="middle" fill="#444">APP_STORE_VERSION_APP_VERSION_STATE_UPDATED</text>
+<text x="190" y="374" font-size="12" text-anchor="middle" fill="#c0392b">x-apple-signature · HMAC-SHA256</text>
+<rect x="60" y="560" width="260" height="120" rx="10" fill="#fff" stroke="#999"/>
+<text x="190" y="590" font-size="15" text-anchor="middle" font-weight="600">App Store Connect REST API</text>
+<text x="190" y="614" font-size="12" text-anchor="middle" fill="#444">versions · localizations · screenshots</text>
+<text x="190" y="634" font-size="12" text-anchor="middle" fill="#444">IAP · pricing · availability · age rating</text>
+<text x="190" y="654" font-size="12" text-anchor="middle" fill="#444">reviewSubmissions → submitted:true</text>
+<rect x="60" y="760" width="260" height="70" rx="10" fill="#fff" stroke="#999"/>
+<text x="190" y="790" font-size="15" text-anchor="middle" font-weight="600">App Review</text>
+<text x="190" y="812" font-size="13" text-anchor="middle" fill="#666">WAITING_FOR_REVIEW → … → READY</text>
+<line x1="190" y1="235" x2="190" y2="280" stroke="#444" stroke-width="2" marker-end="url(#a)"/>
+
+<!-- GCP box -->
+<rect x="380" y="110" width="1380" height="840" rx="16" fill="#f3f7ff" stroke="#9db4e6"/>
+<text x="400" y="140" font-size="18" font-weight="700" fill="#1a3e8a">Google Cloud · inlaid-backbone-506118-k3 · asia-south1 · scale-to-zero</text>
+
+<!-- Cloud Run ingress -->
+<rect x="410" y="270" width="250" height="130" rx="10" fill="#fff" stroke="#4285f4" stroke-width="2"/>
+<text x="535" y="298" font-size="15" text-anchor="middle" font-weight="600">Cloud Run · shipwright</text>
+<text x="535" y="320" font-size="13" text-anchor="middle" fill="#444">POST /webhook/asc</text>
+<text x="535" y="340" font-size="12" text-anchor="middle" fill="#666">verify HMAC → resolve build</text>
+<text x="535" y="360" font-size="12" text-anchor="middle" fill="#666">allowlist app → create job</text>
+<text x="535" y="385" font-size="12" text-anchor="middle" fill="#666">(watcher: version state → job)</text>
+<path d="M320,335 L410,335" stroke="#c0392b" stroke-width="2.5" marker-end="url(#ad)"/>
+<text x="365" y="325" font-size="11" text-anchor="middle" fill="#c0392b">push</text>
+
+<!-- Scheduler -->
+<rect x="410" y="440" width="250" height="64" rx="10" fill="#fff" stroke="#4285f4"/>
+<text x="535" y="466" font-size="14" text-anchor="middle" font-weight="600">Cloud Scheduler · */30</text>
+<text x="535" y="488" font-size="12" text-anchor="middle" fill="#666">POST /reconcile (OIDC) — missed-delivery net</text>
+<line x1="535" y1="440" x2="535" y2="400" stroke="#444" stroke-width="1.5" marker-end="url(#a)"/>
+
+<!-- Pub/Sub -->
+<rect x="720" y="285" width="200" height="100" rx="50" fill="#fff" stroke="#4285f4" stroke-width="2"/>
+<text x="820" y="325" font-size="15" text-anchor="middle" font-weight="600">Pub/Sub</text>
+<text x="820" y="347" font-size="12" text-anchor="middle" fill="#444">shipwright.jobs</text>
+<text x="820" y="365" font-size="11" text-anchor="middle" fill="#666">5 retries → .dead</text>
+<line x1="660" y1="335" x2="720" y2="335" stroke="#444" stroke-width="2" marker-end="url(#a)"/>
+<text x="690" y="325" font-size="11" text-anchor="middle" fill="#444">job_id</text>
+
+<!-- Worker (big) -->
+<rect x="980" y="170" width="560" height="560" rx="12" fill="#fff" stroke="#4285f4" stroke-width="2"/>
+<text x="1260" y="198" font-size="15" text-anchor="middle" font-weight="600">Cloud Run · shipwright · POST /pubsub (worker, resumable stages)</text>
+<text x="1260" y="218" font-size="12" text-anchor="middle" fill="#666">Google ADK agent tree — one job per build</text>
+<line x1="920" y1="335" x2="980" y2="335" stroke="#444" stroke-width="2" marker-end="url(#a)"/>
+<text x="950" y="325" font-size="11" text-anchor="middle" fill="#444">push</text>
+
+<!-- agents inside worker -->
+<g font-size="12">
+<rect x="1000" y="235" width="520" height="40" rx="8" fill="#eef2ff" stroke="#8da2d6"/>
+<text x="1010" y="260" font-weight="600">1 Intake</text><text x="1090" y="260" fill="#444">deterministic · build → VALID → appStoreVersion (create if absent)</text>
+
+<rect x="1000" y="285" width="520" height="92" rx="8" fill="#fff4e5" stroke="#e0a050"/>
+<text x="1010" y="306" font-weight="600">2+3 LoopAgent · critique loop (max 4)</text>
+<rect x="1012" y="318" width="230" height="48" rx="6" fill="#fff" stroke="#e0a050"/>
+<text x="1127" y="338" text-anchor="middle" font-weight="600">Metadata writer</text><text x="1127" y="356" text-anchor="middle" fill="#666">Gemini 3.5 Flash</text>
+<rect x="1278" y="318" width="230" height="48" rx="6" fill="#fff" stroke="#e0a050"/>
+<text x="1393" y="338" text-anchor="middle" font-weight="600">Metadata critic</text><text x="1393" y="356" text-anchor="middle" fill="#666">Gemini + validator tools · exit_loop</text>
+<path d="M1242,334 L1278,334" stroke="#444" stroke-width="1.5" marker-end="url(#a)"/>
+<path d="M1278,352 L1242,352" stroke="#c0392b" stroke-width="1.5" marker-end="url(#ad)"/>
+
+<rect x="1000" y="387" width="520" height="40" rx="8" fill="#eef2ff" stroke="#8da2d6"/>
+<text x="1010" y="412" font-weight="600">4 Screenshots</text><text x="1110" y="412" fill="#444" font-size="11">Gemini captions → Pillow composites of REAL captures (never redrawn) · 1320×2868 &amp; 1284×2778</text>
+
+<rect x="1000" y="437" width="520" height="120" rx="8" fill="#e8f5e9" stroke="#5aa76a"/>
+<text x="1010" y="458" font-weight="600">5 ParallelAgent · preflight fan-out / gather (error index as code)</text>
+<g fill="#fff" stroke="#5aa76a"><rect x="1012" y="468" width="118" height="26" rx="5"/><rect x="1138" y="468" width="118" height="26" rx="5"/><rect x="1264" y="468" width="118" height="26" rx="5"/><rect x="1390" y="468" width="118" height="26" rx="5"/>
+<rect x="1012" y="500" width="118" height="26" rx="5"/><rect x="1138" y="500" width="118" height="26" rx="5"/><rect x="1264" y="500" width="118" height="26" rx="5"/><rect x="1390" y="500" width="118" height="26" rx="5"/></g>
+<g font-size="11" text-anchor="middle" fill="#222"><text x="1071" y="486">content rights</text><text x="1197" y="486">age rating 2026</text><text x="1323" y="486">price · availability</text><text x="1449" y="486">IAP territories</text>
+<text x="1071" y="518">IAP readiness</text><text x="1197" y="518">screenshots + vision</text><text x="1323" y="518">review details</text><text x="1449" y="518">build · web gates</text></g>
+<text x="1010" y="548" fill="#444">→ auto-fix (14 fixers) → read back → re-check → deterministic BLOCK/PASS · operator items for web-only gates</text>
+
+<rect x="1000" y="567" width="520" height="40" rx="8" fill="#eef2ff" stroke="#8da2d6"/>
+<text x="1010" y="592" font-weight="600">6 Submission</text><text x="1110" y="592" fill="#444" font-size="11">reviewSubmissions → items → submitted:true · gates: DRY_RUN · ALLOW_SUBMIT · allowlist</text>
+
+<rect x="1000" y="617" width="520" height="96" rx="8" fill="#fde8e8" stroke="#d07070"/>
+<text x="1010" y="640" font-weight="600">7 Watcher</text><text x="1090" y="640" fill="#444">webhook state transitions · days-long · no polling</text>
+<text x="1010" y="662" fill="#444">rejection text → <tspan font-weight="600">Gemma 4</tspan> first-pass label → Gemini router → re-opens the right stage → re-queue</text>
+<text x="1010" y="684" fill="#444">approved → job closed · operator items → status page</text>
+<text x="1010" y="704" fill="#888">(Resolution Center text has no public API: POST /jobs/{id}/rejection)</text>
+</g>
+
+<!-- Data column -->
+<rect x="1580" y="170" width="160" height="100" rx="10" fill="#fff" stroke="#4285f4"/>
+<text x="1660" y="200" font-size="14" text-anchor="middle" font-weight="600">Firestore</text>
+<text x="1660" y="222" font-size="12" text-anchor="middle" fill="#444">jobs/{id} stages</text>
+<text x="1660" y="240" font-size="12" text-anchor="middle" fill="#444">apps/{id} facts</text>
+<text x="1660" y="258" font-size="11" text-anchor="middle" fill="#666">multi-day review state</text>
+<rect x="1580" y="300" width="160" height="80" rx="10" fill="#fff" stroke="#4285f4"/>
+<text x="1660" y="330" font-size="14" text-anchor="middle" font-weight="600">Cloud Storage</text>
+<text x="1660" y="352" font-size="12" text-anchor="middle" fill="#444">sources · composites</text>
+<text x="1660" y="370" font-size="12" text-anchor="middle" fill="#444">paywall.png</text>
+<rect x="1580" y="410" width="160" height="110" rx="10" fill="#fff" stroke="#e0a050" stroke-width="2"/>
+<text x="1660" y="438" font-size="14" text-anchor="middle" font-weight="600">Secret Manager</text>
+<text x="1660" y="460" font-size="11" text-anchor="middle" fill="#444">asc-private-key (.p8)</text>
+<text x="1660" y="478" font-size="11" text-anchor="middle" fill="#444">asc-issuer-id</text>
+<text x="1660" y="496" font-size="11" text-anchor="middle" fill="#444">asc-webhook-secret</text>
+<text x="1660" y="514" font-size="11" text-anchor="middle" fill="#444">gemini-api-key</text>
+<line x1="1540" y1="220" x2="1580" y2="220" stroke="#444" stroke-width="1.5" marker-start="url(#a)" marker-end="url(#a)"/>
+<line x1="1540" y1="340" x2="1580" y2="340" stroke="#444" stroke-width="1.5" marker-start="url(#a)" marker-end="url(#a)"/>
+<line x1="1540" y1="465" x2="1580" y2="465" stroke="#e0a050" stroke-width="1.5" marker-end="url(#a)"/>
+<text x="1660" y="535" font-size="10" text-anchor="middle" fill="#a06020">read at runtime · never in repo/image</text>
+
+<!-- Frontend -->
+<rect x="1580" y="560" width="160" height="90" rx="10" fill="#fff" stroke="#4285f4" stroke-width="2"/>
+<text x="1660" y="588" font-size="14" text-anchor="middle" font-weight="600">Status frontend</text>
+<text x="1660" y="610" font-size="12" text-anchor="middle" fill="#444">Cloud Run GET /</text>
+<text x="1660" y="628" font-size="12" text-anchor="middle" fill="#444">/jobs/{id} · operator items</text>
+<path d="M1740,605 L1752,605 L1752,220 L1740,220" stroke="#444" stroke-width="1.5" fill="none" stroke-dasharray="5,4" marker-end="url(#a)"/>
+<text x="1756" y="415" font-size="10" fill="#666" transform="rotate(90 1756,415)">reads</text>
+
+<!-- Models -->
+<rect x="410" y="760" width="250" height="80" rx="10" fill="#fff" stroke="#34a853" stroke-width="2"/>
+<text x="535" y="790" font-size="15" text-anchor="middle" font-weight="600">Vertex AI · gemini-3.5-flash</text>
+<text x="535" y="812" font-size="12" text-anchor="middle" fill="#444">location=global · writer · critic · captions</text>
+<text x="535" y="830" font-size="12" text-anchor="middle" fill="#444">reporter · vision claims · rejection router</text>
+<rect x="720" y="760" width="200" height="80" rx="10" fill="#fff" stroke="#34a853" stroke-width="2"/>
+<text x="820" y="790" font-size="15" text-anchor="middle" font-weight="600">Gemini API · gemma-4-31b</text>
+<text x="820" y="812" font-size="12" text-anchor="middle" fill="#444">rejection first-pass label</text>
+<text x="820" y="830" font-size="12" text-anchor="middle" fill="#444">(bonus model, genuinely the right size)</text>
+<rect x="980" y="760" width="250" height="80" rx="10" fill="#fff" stroke="#34a853"/>
+<text x="1105" y="790" font-size="14" text-anchor="middle" font-weight="600">Veo 3.1 · Lyria 3</text>
+<text x="1105" y="812" font-size="12" text-anchor="middle" fill="#444">scripts/promo_clip.py · promo_music.py</text>
+<text x="1105" y="830" font-size="12" text-anchor="middle" fill="#444">demo-video assets, outside the release path</text>
+<path d="M1260,730 L1260,745 L535,745 L535,760" stroke="#34a853" stroke-width="1.5" fill="none" marker-end="url(#a)"/>
+<path d="M1260,730 L1260,745 L820,745 L820,760" stroke="#34a853" stroke-width="1.5" fill="none" marker-end="url(#a)"/>
+
+<!-- worker -> ASC REST -->
+<path d="M980,620 L700,620 L700,620 L320,620" stroke="#444" stroke-width="2" fill="none" marker-end="url(#a)"/>
+<text x="650" y="608" font-size="12" text-anchor="middle" fill="#444">REST · ES256 JWT from Secret Manager · backoff on 429/5xx · every write read back</text>
+<path d="M190,680 L190,760" stroke="#444" stroke-width="2" marker-end="url(#a)"/>
+<path d="M320,795 L370,795 L370,335" stroke="#c0392b" stroke-width="1.5" fill="none" stroke-dasharray="5,4" marker-end="url(#ad)"/>
+<text x="345" y="700" font-size="10" fill="#c0392b" transform="rotate(-90 345,700)">state change → webhook</text>
+
+<text x="400" y="930" font-size="12" fill="#555">Safety rails: DRY_RUN=true default · ALLOW_SUBMIT separate flag · hard app allowlist (6803901837) · .p8 only in Secret Manager · Pub/Sub dead-letter · stage-level resume · budget alert</text>
+</svg>

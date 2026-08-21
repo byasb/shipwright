@@ -53,7 +53,7 @@ def _verify_signature(body: bytes, header: str | None) -> bool:
 
 
 def _job_for_build(asc: ASC, build_id: str, source: str) -> dict | None:
-    b = asc.get(f"/v1/builds/{build_id}", **{"fields[builds]": "version,processingState", "include": "app"})
+    b = asc.get(f"/v1/builds/{build_id}", **{"fields[builds]": "version,processingState,app", "include": "app"})
     app_id = b["data"]["relationships"]["app"]["data"]["id"]
     if app_id not in config.ALLOWED_APP_IDS:
         log.info("build %s belongs to app %s — not allowlisted, ignoring", build_id, app_id)
@@ -88,14 +88,31 @@ async def asc_webhook(req: Request):
 
     asc = ASC()
     if etype == "buildUploadStateUpdated":
-        new_state = attrs.get("newState")
-        if new_state not in ("COMPLETE", "VALID", None):
+        new_state = str(attrs.get("newState") or "")
+        if new_state and not any(k in new_state.upper() for k in ("COMPLETE", "VALID", "SUCCESS", "PROCESSED")):
+            store.db().collection("webhook_events").add({"at": store.now(), "type": etype, "state": new_state, "instance": inst.get("id")})
             return {"ignored": new_state}
-        up = asc.get(f"/v1/buildUploads/{inst.get('id')}", include="build")
-        build = (up["data"].get("relationships") or {}).get("build", {}).get("data")
-        if not build:
-            return {"ignored": "upload has no build yet"}
-        job = _job_for_build(asc, build["id"], "webhook")
+        build_id = None
+        try:  # observed 2026-08: the build shares the buildUpload's id
+            asc.get(f"/v1/builds/{inst.get('id')}", **{"fields[builds]": "processingState"})
+            build_id = inst.get("id")
+        except ASCError:
+            pass
+        try:
+            up = asc.get(f"/v1/buildUploads/{inst.get('id')}")
+            build_id = build_id or (((up["data"].get("relationships") or {}).get("build") or {}).get("data") or {}).get("id")
+            log.info("buildUpload %s attrs=%s", inst.get("id"), up["data"].get("attributes"))
+        except ASCError as e:
+            log.warning("buildUploads/%s: %s", inst.get("id"), e.status)
+        if not build_id:  # instance lacks the build link → newest VALID build on an allowlisted app
+            for app_id in config.ALLOWED_APP_IDS:
+                bs = asc.get("/v1/builds", **{"filter[app]": app_id, "sort": "-uploadedDate", "limit": 1}).get("data") or []
+                if bs and bs[0]["attributes"]["processingState"] in ("VALID", "PROCESSING") and not store.find_job_for_build(bs[0]["id"]):
+                    build_id = bs[0]["id"]
+                    break
+        if not build_id:
+            return {"ignored": "no build resolvable yet — scheduler reconcile will pick it up"}
+        job = _job_for_build(asc, build_id, "webhook")
         return {"job": job["job_id"] if job else None}
 
     if etype == "appStoreVersionAppVersionStateUpdated":

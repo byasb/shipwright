@@ -35,7 +35,7 @@ gcloud pubsub subscriptions create "$TOPIC.dead.sub" --project "$PROJECT" --topi
 gcloud scheduler jobs create http shipwright-reconcile --project "$PROJECT" --location "$REGION" \
   --schedule "*/30 * * * *" --uri "$URL/reconcile" --http-method POST \
   --oidc-service-account-email "$SA" --oidc-token-audience "$URL/reconcile" 2>/dev/null \
-  || gcloud scheduler jobs update http shipwright-reconcile --project "$PROJECT" --location "$REGION" --uri "$URL/reconcile" --oidc-token-audience "$URL/reconcile"
+  || gcloud scheduler jobs update http shipwright-reconcile --project "$PROJECT" --location "$REGION" --uri "$URL/reconcile" --oidc-service-account-email "$SA" --oidc-token-audience "$URL/reconcile"
 
 echo
 echo "Next: scripts/register_webhook.sh $URL   (one-time: tells App Store Connect where to POST)"

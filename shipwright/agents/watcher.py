@@ -38,14 +38,17 @@ APPLE'S MESSAGE:
 def gemma_classify(text: str) -> str:
     """Cheap first-pass label with Gemma 4 through the Gemini API (separate model family = hackathon bonus,
     but also genuinely the right tool: a 10-token classification doesn't need a frontier model)."""
-    key = os.environ.get("GEMINI_API_KEY") or config.secret("gemini-api-key")
-    client = Client(api_key=key)
-    r = client.models.generate_content(
-        model=config.GEMMA_MODEL,
-        contents=("Classify this App Store rejection into exactly one label from: metadata, screenshots, iap, privacy, binary, design, operator. "
-                  "Reply with the label only.\n\n" + text[:4000]),
-    )
-    return (r.text or "").strip().split()[0].lower().strip(".,") if r.text else "unknown"
+    try:
+        key = os.environ.get("GEMINI_API_KEY") or config.secret("gemini-api-key")
+        client = Client(api_key=key, vertexai=False)
+        r = client.models.generate_content(
+            model=config.GEMMA_MODEL,
+            contents=("Classify this App Store rejection into exactly one label from: metadata, screenshots, iap, privacy, binary, design, operator. "
+                      "Reply with the label only.\n\n" + text[:4000]),
+        )
+        return (r.text or "").strip().split()[0].lower().strip(".,") if r.text else "unknown"
+    except Exception as e:  # noqa: BLE001 — a cheap first pass must never block the router
+        return f"unknown ({type(e).__name__})"
 
 
 def build_rejection_parser(model: str = config.MODEL) -> Agent:

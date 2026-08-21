@@ -132,7 +132,7 @@ def gen_backdrop(prompt: str, size: tuple[int, int] = API_SIZE) -> Image.Image |
     try:
         from google.genai import Client, types
 
-        client = Client(api_key=os.environ.get("GEMINI_API_KEY") or __import__("shipwright.config", fromlist=["secret"]).secret("gemini-api-key"))
+        client = Client(api_key=os.environ.get("GEMINI_API_KEY") or __import__("shipwright.config", fromlist=["secret"]).secret("gemini-api-key"), vertexai=False)
         r = client.models.generate_content(
             model=os.environ.get("IMAGE_MODEL", "gemini-3.1-flash-image"),
             contents=f"Abstract, text-free, portrait 9:19.5 app-store backdrop. {prompt}. No letters, no UI, no devices.",

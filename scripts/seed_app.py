@@ -21,18 +21,16 @@ SNIPSTASH = {
 SnipStash is a clipboard and snippet manager for iPhone.
 What it does: keeps everything you copy in one searchable vault — text, links, code, images, files.
 Core mechanic: tap any saved snippet to copy it back to the clipboard instantly (haptic confirm).
-Features (ship in v1.0):
-- Save from anywhere via the iOS Share Sheet (text, URL, image)
+Features (ship in v1.0, build 2):
 - "Save clipboard?" banner when the app opens with something new on the clipboard (reads clipboard ONLY after the user taps Save — no paste-permission nag)
 - Smart auto-title and auto-tags (URL / code / email / phone detection, on-device heuristics)
 - Pinned + Recent sections, full-text search, colour-coded tags (personal/work/code/links), tag manager
-- Home Screen widget listing pinned snippets; tapping one copies it
 - Siri Shortcuts / App Intents: "Save Snippet" and "Search Snippets"
 - Free tier: 25 snippets. SnipStash Pro (monthly subscription or one-time lifetime) unlocks unlimited snippets.
 Privacy: all data stored on-device (SwiftData); no account, no server, no analytics SDK. Nothing leaves the phone.
 Permissions: none required. Clipboard is read only on explicit Save tap.
 Audience: developers, support staff, sales reps, anyone who pastes the same things daily (addresses, UPI IDs, sign-offs, links).
-Not in v1.0: iCloud sync, OCR, custom keyboard, Mac app. Do not mention these.
+Not in v1.0 (build 2): Share Sheet extension, Home Screen widget, iCloud sync, OCR, custom keyboard, Mac app. Do not mention any of these.
 Monetisation facts for review notes: paywall reachable from Settings → SnipStash Pro, and when adding the 26th snippet. Restore Purchases button is on the paywall. Prices load from StoreKit.
 """.strip(),
     "review_notes_extra": "Sample data: the app seeds 10 demo snippets on first launch so every screen is populated. No demo account is needed — there is no login.",
