@@ -1,0 +1,512 @@
+<title>How Shipwright Works</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Source+Sans+3:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+  :root {
+    --ground: #EDF0F4;        /* slate paper */
+    --panel: #FFFFFF;
+    --ink: #13213A;           /* harbour navy */
+    --ink-2: #4A5870;
+    --line: #C9D1DD;
+    --accent: #E2601F;        /* dock-crane orange */
+    --accent-ink: #FFFFFF;
+    --sea: #1B6F80;           /* Google Cloud side */
+    --sea-soft: #DCEEF2;
+    --apple: #6B7280;
+    --apple-soft: #E8EAEF;
+    --warn: #B7791F;
+    --warn-soft: #F6EBD3;
+    --ok: #2E7D4F;
+    --ok-soft: #DDF0E3;
+    --bad: #B3261E;
+    --bad-soft: #F6DEDC;
+    --shadow: 0 10px 30px rgba(19,33,58,.08);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground: #0F1726; --panel: #18223A; --ink: #E8EDF5; --ink-2: #A7B3C8; --line: #2C3A55;
+      --accent: #F0782F; --accent-ink: #141414; --sea: #6CC3D5; --sea-soft: #15303A;
+      --apple: #A9B1C0; --apple-soft: #222C40; --warn: #E3B45B; --warn-soft: #3A2E14;
+      --ok: #6FCB92; --ok-soft: #143322; --bad: #F28B83; --bad-soft: #3D1A17; --shadow: 0 10px 30px rgba(0,0,0,.35);
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground: #0F1726; --panel: #18223A; --ink: #E8EDF5; --ink-2: #A7B3C8; --line: #2C3A55;
+    --accent: #F0782F; --accent-ink: #141414; --sea: #6CC3D5; --sea-soft: #15303A;
+    --apple: #A9B1C0; --apple-soft: #222C40; --warn: #E3B45B; --warn-soft: #3A2E14;
+    --ok: #6FCB92; --ok-soft: #143322; --bad: #F28B83; --bad-soft: #3D1A17; --shadow: 0 10px 30px rgba(0,0,0,.35);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    background: var(--ground); color: var(--ink);
+    font-family: "Source Sans 3", "Helvetica Neue", Arial, sans-serif;
+    font-size: clamp(16px, 1.35vw, 21px); line-height: 1.45;
+    overflow: hidden;
+  }
+  h1, h2, h3 { font-family: "Bricolage Grotesque", "Helvetica Neue", Arial, sans-serif; letter-spacing: -.01em; text-wrap: balance; margin: 0; }
+  code, .mono { font-family: "JetBrains Mono", Menlo, Consolas, monospace; font-size: .86em; }
+  a { color: var(--sea); }
+
+  .deck { display: flex; height: 100vh; overflow-x: auto; overflow-y: hidden; scroll-snap-type: x mandatory; scroll-behavior: smooth; }
+  @media (prefers-reduced-motion: reduce) { .deck { scroll-behavior: auto; } }
+  .slide {
+    flex: 0 0 100vw; height: 100vh; scroll-snap-align: start;
+    display: grid; grid-template-rows: auto 1fr auto; gap: 1.2rem;
+    padding: clamp(20px, 4vh, 48px) clamp(24px, 6vw, 96px);
+    overflow-y: auto;
+  }
+  .eyebrow { display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; font-size: .78em; text-transform: uppercase; letter-spacing: .12em; color: var(--ink-2); font-weight: 600; }
+  .eyebrow .n { font-family: "JetBrains Mono", monospace; letter-spacing: 0; color: var(--accent); }
+  .body { display: grid; align-content: start; gap: 1.1rem; min-height: 0; }
+  .say { border-top: 1px solid var(--line); padding-top: .8rem; display: grid; grid-template-columns: auto 1fr; gap: .9rem; align-items: start; font-size: .95em; color: var(--ink-2); }
+  .say b { color: var(--accent); font-family: "Bricolage Grotesque", sans-serif; font-weight: 700; white-space: nowrap; font-size: .85em; text-transform: uppercase; letter-spacing: .08em; padding-top: .15em; }
+  .say em { font-style: italic; color: var(--ink); }
+
+  h1 { font-size: clamp(2.4rem, 6vw, 5rem); line-height: 1; font-weight: 800; }
+  h2 { font-size: clamp(1.7rem, 3.4vw, 2.8rem); line-height: 1.08; font-weight: 700; max-width: 22ch; }
+  h3 { font-size: 1.05em; font-weight: 700; }
+  .lede { font-size: 1.15em; max-width: 62ch; color: var(--ink-2); }
+  p { margin: 0; max-width: 68ch; }
+  ul { margin: 0; padding-left: 1.1em; max-width: 68ch; } li { margin: .25em 0; }
+
+  .cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1rem; align-items: start; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 1rem 1.1rem; box-shadow: var(--shadow); }
+  .card h3 { margin-bottom: .35rem; }
+  .card .tag { display: inline-block; font-size: .72em; text-transform: uppercase; letter-spacing: .1em; font-weight: 600; padding: .15em .55em; border-radius: 999px; margin-bottom: .5rem; }
+  .t-code { background: var(--apple-soft); color: var(--apple); }
+  .t-llm { background: var(--sea-soft); color: var(--sea); }
+  .t-both { background: var(--warn-soft); color: var(--warn); }
+
+  /* flow diagram */
+  .flow { display: flex; flex-wrap: nowrap; align-items: stretch; gap: .5rem; }
+  @media (max-width: 1100px) { .flow { flex-wrap: wrap; } .flow .node { flex-basis: 200px; } }
+  .node { background: var(--panel); border: 2px solid var(--line); border-radius: 10px; padding: .65rem .75rem; min-width: 0; flex: 1 1 0; box-shadow: var(--shadow); font-size: .92em; }
+  .node.apple { border-color: var(--apple); }
+  .node.gcp { border-color: var(--sea); }
+  .node.hot { border-color: var(--accent); }
+  .node small { display: block; color: var(--ink-2); font-size: .82em; line-height: 1.3; margin-top: .2rem; }
+  .node b { font-family: "Bricolage Grotesque", sans-serif; font-weight: 700; }
+  .arrow { align-self: center; color: var(--accent); font-size: 1.4em; font-weight: 800; flex: 0 0 auto; }
+  .legend { display: flex; gap: 1.2rem; flex-wrap: wrap; font-size: .85em; color: var(--ink-2); }
+  .legend span::before { content: ""; display: inline-block; width: .9em; height: .9em; border-radius: 3px; border: 2px solid currentColor; margin-right: .4em; vertical-align: -.1em; }
+  .legend .la { color: var(--apple); } .legend .lg { color: var(--sea); } .legend .lh { color: var(--accent); }
+
+  table { border-collapse: collapse; width: 100%; font-size: .95em; background: var(--panel); border-radius: 10px; overflow: hidden; box-shadow: var(--shadow); }
+  th, td { text-align: left; padding: .55em .8em; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-size: .78em; text-transform: uppercase; letter-spacing: .1em; color: var(--ink-2); font-weight: 600; }
+  tr:last-child td { border-bottom: 0; }
+  .tbl-wrap { overflow-x: auto; }
+  .num { font-family: "JetBrains Mono", monospace; color: var(--accent); font-weight: 600; }
+
+  .pill { display: inline-block; padding: .1em .55em; border-radius: 999px; font-size: .8em; font-weight: 600; font-family: "JetBrains Mono", monospace; }
+  .p-block { background: var(--bad-soft); color: var(--bad); } .p-warn { background: var(--warn-soft); color: var(--warn); } .p-ok { background: var(--ok-soft); color: var(--ok); } .p-op { background: var(--apple-soft); color: var(--apple); }
+
+  .log { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: .9rem 1rem; font-family: "JetBrains Mono", monospace; font-size: .8em; line-height: 1.55; overflow-x: auto; white-space: pre; box-shadow: var(--shadow); }
+  .log .k { color: var(--bad); } .log .w { color: var(--warn); } .log .g { color: var(--ok); } .log .d { color: var(--ink-2); }
+
+  .loop { display: grid; grid-template-columns: 1fr auto 1fr; gap: 1rem; align-items: center; }
+  .loop .arrows { display: grid; gap: .3rem; text-align: center; color: var(--accent); font-weight: 800; font-size: 1.3em; }
+  .loop .arrows small { display: block; color: var(--ink-2); font-weight: 400; font-size: .6em; }
+
+  .big { font-family: "Bricolage Grotesque", sans-serif; font-size: clamp(2rem, 5vw, 4rem); font-weight: 800; line-height: 1; color: var(--accent); }
+  .stat { display: grid; gap: .2rem; } .stat small { color: var(--ink-2); }
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 1rem; }
+
+  .timeline { display: grid; gap: .5rem; border-left: 3px solid var(--accent); padding-left: 1rem; }
+  .timeline div { display: grid; grid-template-columns: 7ch 1fr; gap: .8rem; }
+  .timeline .t { font-family: "JetBrains Mono", monospace; color: var(--accent); font-weight: 600; }
+
+  .gate { display: flex; gap: .6rem; flex-wrap: wrap; align-items: center; }
+  .gate .g { border: 2px solid var(--accent); border-radius: 8px; padding: .5rem .8rem; font-family: "JetBrains Mono", monospace; font-weight: 600; background: var(--panel); }
+  .gate .and { font-family: "Bricolage Grotesque", sans-serif; font-weight: 800; color: var(--ink-2); }
+
+  .nav { position: fixed; right: 1.2rem; bottom: 1rem; display: flex; gap: .4rem; align-items: center; font-family: "JetBrains Mono", monospace; font-size: .8em; color: var(--ink-2); z-index: 5; }
+  .nav button { background: var(--panel); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; width: 2.4em; height: 2.4em; cursor: pointer; font-size: 1em; }
+  .nav button:hover, .nav button:focus-visible { border-color: var(--accent); outline: 2px solid var(--accent); outline-offset: 1px; }
+  .progress { position: fixed; left: 0; top: 0; height: 4px; background: var(--accent); width: 0; z-index: 5; transition: width .2s; }
+  @media (prefers-reduced-motion: reduce) { .progress { transition: none; } }
+  @media (max-width: 700px) { .loop { grid-template-columns: 1fr; } .loop .arrows { transform: rotate(90deg); } .say { grid-template-columns: 1fr; } }
+</style>
+
+<div class="progress" id="progress"></div>
+<div class="deck" id="deck">
+
+<!-- 1 -->
+<section class="slide">
+  <div class="eyebrow"><span>All Things Agentic · Taskmaster track</span><span class="n">01 / 17</span></div>
+  <div class="body">
+    <h1>Shipwright</h1>
+    <p class="lede">A build lands in App Store Connect. Nobody types anything. Hours later the app is <strong>Waiting for Review</strong>.</p>
+    <div class="stats">
+      <div class="stat"><span class="big">1</span><small>trigger — an Apple webhook</small></div>
+      <div class="stat"><span class="big">7</span><small>agents, one obvious job each</small></div>
+      <div class="stat"><span class="big">0</span><small>chat boxes, typed prompts, polling loops</small></div>
+      <div class="stat"><span class="big">14</span><small>rejection traps encoded as code</small></div>
+    </div>
+  </div>
+  <div class="say"><b>Say it like this</b><span><em>"Shipwright is an agent that does the last mile of an iOS release for me — from 'the binary uploaded' to 'Apple is reviewing it' — without me touching anything."</em> → then arrow right.</span></div>
+</section>
+
+<!-- 2 -->
+<section class="slide">
+  <div class="eyebrow"><span>The friction</span><span class="n">02 / 17</span></div>
+  <div class="body">
+    <h2>The last mile of a release is where the two days go</h2>
+    <div class="cols">
+      <div class="card"><h3>What "the last mile" actually is</h3>
+        <ul><li>App name, subtitle, a 100-char keyword field with rules</li><li>Screenshots in exactly the right pixel sizes</li><li>Prices in 175 territories, availability, age-rating questionnaire</li><li>Review contact + notes, in-app purchase readiness</li><li>Then a dozen traps that only appear <em>after</em> you press Submit</li></ul></div>
+      <div class="card"><h3>Why I know</h3>
+        <p>14 apps on the App Store. The week before this hackathon I did this by hand for a new one: two days, a 55-char limit I'd forgotten, a rerun that silently skipped a localization, and a default that would have left an in-app purchase buyable in <strong>one country</strong>.</p>
+        <p style="margin-top:.6rem">I keep a <strong>64-row error index</strong> of every trap I've hit. That index is the product.</p></div>
+    </div>
+  </div>
+  <div class="say"><b>Say it like this</b><span><em>"This isn't a hypothetical. I lived it last week and I wrote every trap down. The agent is that list, running by itself."</em></span></div>
+</section>
+
+<!-- 3 -->
+<section class="slide">
+  <div class="eyebrow"><span>The rule</span><span class="n">03 / 17</span></div>
+  <div class="body">
+    <h2>Nothing types. Ever.</h2>
+    <p class="lede">The Taskmaster track asks for an agent that <strong>watches for a trigger, decides what to do, and acts across apps end-to-end</strong>. Most entries open with someone typing into a chat box. Ours opens with a build upload.</p>
+    <div class="cols">
+      <div class="card"><h3>What wakes the agent</h3><p>App Store Connect has real webhooks (push, not polling). When a build finishes processing, Apple sends a signed POST to our Cloud Run URL. That POST <em>is</em> the start button.</p></div>
+      <div class="card"><h3>What the human does</h3><p>Upload a build, the way they already do. Once per app, seed a fact sheet (what the app does, who it's for, brand colours). That's it.</p></div>
+      <div class="card"><h3>What comes back</h3><p>Days later, Apple's review verdict arrives by the same webhook. Approved → job closed. Rejected → the agent routes the rejection to the right stage and re-runs itself.</p></div>
+    </div>
+  </div>
+  <div class="say"><b>Say it like this</b><span><em>"The only human action in the whole demo is uploading a build — which I'd do anyway. The trigger is Apple telling us the build is ready."</em></span></div>
+</section>
+
+<!-- 4 -->
+<section class="slide">
+  <div class="eyebrow"><span>Big picture</span><span class="n">04 / 17</span></div>
+  <div class="body">
+    <h2>One line, left to right</h2>
+    <div class="flow">
+      <div class="node apple"><b>Build upload</b><small>xcodebuild → App Store Connect processes it</small></div>
+      <div class="arrow">→</div>
+      <div class="node apple"><b>Apple webhook</b><small>signed POST: "build is COMPLETE"</small></div>
+      <div class="arrow">→</div>
+      <div class="node gcp hot"><b>Cloud Run · receiver</b><small>verify signature · allowlist · create job</small></div>
+      <div class="arrow">→</div>
+      <div class="node gcp"><b>Pub/Sub</b><small>queue + retries + dead-letter</small></div>
+      <div class="arrow">→</div>
+      <div class="node gcp hot"><b>Cloud Run · worker</b><small>7 ADK agents, Gemini 3.5</small></div>
+      <div class="arrow">→</div>
+      <div class="node apple"><b>App Store Connect API</b><small>metadata · screenshots · fixes · submit</small></div>
+      <div class="arrow">→</div>
+      <div class="node apple"><b>App Review</b><small>verdict comes back via webhook</small></div>
+    </div>
+    <div class="legend"><span class="la">Apple</span><span class="lg">Google Cloud</span><span class="lh">where our code runs</span></div>
+    <div class="cols">
+      <div class="card"><h3>State lives in Firestore</h3><p>One document per job: which stage is done, what was written, what Apple said. A crash or a retry resumes at the first unfinished stage.</p></div>
+      <div class="card"><h3>Secrets live in Secret Manager</h3><p>The Apple private key (<span class="mono">.p8</span>) is read at runtime. It is not in the repo, not in the container image, not in an environment variable.</p></div>
+      <div class="card"><h3>Status page = the frontend</h3><p>Cloud Run serves <span class="mono">/</span> and <span class="mono">/jobs/{id}</span> straight from Firestore: stages, metadata, screenshots, findings, operator items.</p></div>
+    </div>
+  </div>
+  <div class="say"><b>Say it like this</b><span><em>"Apple pushes, Cloud Run receives, Pub/Sub queues, a worker runs seven agents, they write back to Apple, and Apple's verdict comes back on the same wire."</em></span></div>
+</section>
+
+<!-- 5 -->
+<section class="slide">
+  <div class="eyebrow"><span>The trigger, up close</span><span class="n">05 / 17</span></div>
+  <div class="body">
+    <h2>How a webhook becomes a job</h2>
+    <div class="cols">
+      <div class="card"><span class="tag t-code">step 1</span><h3>Verify it really is Apple</h3><p>Apple signs every POST with a shared secret: header <span class="mono">x-apple-signature: hmacsha256=…</span>. We recompute the HMAC over the raw body and compare in constant time. Wrong signature → 401, nothing happens.</p></div>
+      <div class="card"><span class="tag t-code">step 2</span><h3>Resolve the build</h3><p>The payload names a <span class="mono">buildUploads</span> id. Observed: the build shares that UUID. Fallback: newest VALID build on an allowlisted app. Net: Cloud Scheduler reconciles every 30 min in case a delivery is missed.</p></div>
+      <div class="card"><span class="tag t-code">step 3</span><h3>Allowlist, then job</h3><p>Only app <span class="mono">6803901837</span> may be written to — 13 other apps are live and earning. Passes → Firestore job document → Pub/Sub message with the job id → worker picks it up.</p></div>
+    </div>
+    <div class="log"><span class="d">19:35:55</span>  xcodebuild: Upload succeeded
+<span class="d">19:37:25</span>  webhook buildUploadStateUpdated {'oldState': 'PROCESSING', 'newState': 'COMPLETE'}
+<span class="d">19:43:56</span>  buildUpload 2143692d… cfBundleVersion=2 state=COMPLETE  →  job-2-d7d5d7 created  →  published to shipwright.jobs</div>
+  </div>
+  <div class="say"><b>Say it like this</b><span><em>"Ninety seconds after the upload, Apple's webhook hit Cloud Run. Signature checked, build resolved, job created. That log line is the whole trigger."</em></span></div>
+</section>
+
+<!-- 6 -->
+<section class="slide">
+  <div class="eyebrow"><span>The seven agents</span><span class="n">06 / 17</span></div>
+  <div class="body">
+    <h2>LLM where judgment is needed, code where determinism is</h2>
+    <div class="tbl-wrap"><table>
+      <tr><th>#</th><th>Agent</th><th>Kind</th><th>One job</th></tr>
+      <tr><td class="num">1</td><td><b>Intake</b></td><td><span class="pill p-op">code</span></td><td>Wait for the build to be VALID, find or create the App Store version, open the job</td></tr>
+      <tr><td class="num">2</td><td><b>Metadata writer</b></td><td><span class="pill p-ok">Gemini</span></td><td>Name, subtitle, keywords, description, promo text, App Review notes — from the fact sheet</td></tr>
+      <tr><td class="num">3</td><td><b>Metadata critic</b></td><td><span class="pill p-ok">Gemini + tools</span></td><td>Try to reject the draft. Sends it back until it passes. (critique loop)</td></tr>
+      <tr><td class="num">4</td><td><b>Screenshots</b></td><td><span class="pill p-warn">Gemini + code</span></td><td>Captions from Gemini; real device pixels composited by code, never redrawn</td></tr>
+      <tr><td class="num">5</td><td><b>Compliance preflight</b></td><td><span class="pill p-warn">code + Gemini</span></td><td>14 checks in parallel, each a rejection I already paid for; auto-fix; read back; re-check</td></tr>
+      <tr><td class="num">6</td><td><b>Submission</b></td><td><span class="pill p-op">code</span></td><td>Attach build, write metadata, submit for review — behind three gates</td></tr>
+      <tr><td class="num">7</td><td><b>Watcher</b></td><td><span class="pill p-ok">Gemma + Gemini</span></td><td>Days-long. Reads Apple's verdict from webhooks; routes rejections back to the right agent</td></tr>
+    </table></div>
+  </div>
+  <div class="say"><b>Say it like this</b><span><em>"Seven agents, each with one obvious job. The model only runs where a judgment is needed — writing, critiquing, reading a rejection. Everything that has a right answer is code."</em></span></div>
+</section>
+
+<!-- 7 -->
+<section class="slide">
+  <div class="eyebrow"><span>Agents 2 + 3 · critique loop</span><span class="n">07 / 17</span></div>
+  <div class="body">
+    <h2>Give the critic tools, not taste</h2>
+    <div class="loop">
+      <div class="card"><span class="tag t-llm">Writer</span><h3>Drafts the metadata</h3><p>Reads the fact sheet and the last critique. Follows the <em>three-name doctrine</em>: the store name is a keyword-led ranking asset (<span class="mono">"SnipStash: Clipboard Manager"</span>), subtitle is a second search field, keywords fill what's left.</p></div>
+      <div class="arrows"><span>→</span><small>draft</small><span>←</span><small>rejection list</small></div>
+      <div class="card"><span class="tag t-llm">Critic</span><h3>Tries to reject it</h3><p>First calls a <strong>deterministic validator</strong> (a tool): 30/30/100 char limits, fill ≥27/27/97, zero words repeated across fields, no plurals, no "app", no brand names, no hardcoded price. Then applies judgment: claims the facts don't support, slogan-y subtitles. Approves by calling <span class="mono">exit_loop</span>.</p></div>
+    </div>
+    <div class="cols">
+      <div class="card"><h3>Why a separate agent</h3><p>A writer asked to check its own work says "looks good". A second agent whose <em>only</em> job is to reject, with a validator it must call, catches a 31-character name every time.</p></div>
+      <div class="card"><h3>ADK pattern</h3><p><span class="mono">LoopAgent(sub_agents=[writer, critic], max_iterations=4)</span>. Output flows through session state (<span class="mono">output_key</span>). On every real run so far it converged in one round.</p></div>
+      <div class="card"><h3>Result on SnipStash</h3><p>name 28/30 · subtitle 27/30 · keywords 97/100 · zero cross-field repeats · review notes are numbered test steps.</p></div>
+    </div>
+  </div>
+  <div class="say"><b>Say it like this</b><span><em>"Two models: one writes, one is paid to say no. The 'no' agent has Apple's rules as a tool, so the model spends its judgment on the things code can't see."</em></span></div>
+</section>
+
+<!-- 8 -->
+<section class="slide">
+  <div class="eyebrow"><span>Agent 4 · screenshots</span><span class="n">08 / 17</span></div>
+  <div class="body">
+    <h2>Real pixels. An image model never touches the UI.</h2>
+    <div class="cols">
+      <div class="card"><h3>Why</h3><p>From the error index: let an image model "redraw" a screenshot and it hallucinates numbers and text — a "SAVE 30%" badge you don't have. App Review reads every word on a screenshot.</p></div>
+      <div class="card"><h3>How</h3><p>Five real simulator captures at 1320×2868. Gemini writes a headline + sub-line per panel that <em>echoes the metadata keywords</em>. Code (Pillow) paints a brand-gradient backdrop, the caption, and pastes the capture pixel-exact with rounded corners and a shadow.</p></div>
+      <div class="card"><h3>Sizes (a trap in itself)</h3><p>Apple's API slot for 6.9" phones is named <span class="mono">APP_IPHONE_67</span> and takes 1320×2868; <span class="mono">APP_IPHONE_69</span> does not exist. The web uploader wants 1284×2778 instead. We render both.</p></div>
+    </div>
+    <p class="lede">Panel order is a rule too: panel 1 establishes the <em>category</em> (a searcher must instantly recognise what this is), 2–3 the mechanic, last one trust/privacy.</p>
+  </div>
+  <div class="say"><b>Say it like this</b><span><em>"The screenshots are real device captures on a branded background with keyword captions. No generated UI — that's how you get rejected for a number that isn't in the app."</em></span></div>
+</section>
+
+<!-- 9 -->
+<section class="slide">
+  <div class="eyebrow"><span>Agent 5 · compliance preflight</span><span class="n">09 / 17</span></div>
+  <div class="body">
+    <h2>The error index, as a checklist that runs in parallel</h2>
+    <div class="flow">
+      <div class="node gcp"><b>Fan out</b><small>14 checks as ADK <span class="mono">ParallelAgent</span> sub-agents; each is a pure read of the App Store Connect API</small></div>
+      <div class="arrow">→</div>
+      <div class="node gcp"><b>Gather</b><small>findings with severity: BLOCK · WARN · operator-only</small></div>
+      <div class="arrow">→</div>
+      <div class="node hot"><b>Auto-fix</b><small>14 fixers, in dependency order (metadata before screenshots before IAP screenshots)</small></div>
+      <div class="arrow">→</div>
+      <div class="node hot"><b>Read back</b><small>a 2xx from Apple means "stored", not "done"</small></div>
+      <div class="arrow">→</div>
+      <div class="node gcp"><b>Re-check → verdict</b><small>deterministic PASS / BLOCKED; Gemini only writes the human report</small></div>
+    </div>
+    <div class="cols">
+      <div class="card"><h3>Examples of checks</h3><ul><li>Content rights + copyright — only fail at the final submit call</li><li>2026 age-rating fields (7 new booleans) — the PATCH 409s without them</li><li>New apps have <strong>no</strong> price schedule and <strong>no</strong> availability — sold nowhere</li><li>IAP buyable in 1/175 territories</li><li>IAP stuck MISSING_METADATA: review screenshot missing</li><li>Screenshot slot names, build attached, export compliance</li></ul></div>
+      <div class="card"><h3>Operator items (web-only by design)</h3><p>Some gates have no API: App Privacy must be <em>published</em>, the 2026 medical-device banner, the Paid Apps Agreement, the first IAP attaching via the web draft. The agent doesn't pretend — it lists them as one-click items on the job page.</p></div>
+    </div>
+  </div>
+  <div class="say"><b>Say it like this</b><span><em>"Fourteen checks run at once. Every one is a rejection I already paid for. What the API can fix, it fixes and reads back. What only a web click can fix, it hands me as a list."</em></span></div>
+</section>
+
+<!-- 10 -->
+<section class="slide">
+  <div class="eyebrow"><span>First real run · fresh app record</span><span class="n">10 / 17</span></div>
+  <div class="body">
+    <h2>What preflight found before any fix</h2>
+    <div class="log"><span class="k">[BLOCK]</span> contentRightsDeclaration unset — surfaces only at reviewSubmissionItems POST
+<span class="k">[BLOCK]</span> version.copyright empty — hidden blocker at submit
+<span class="k">[BLOCK]</span> 2026 age-rating fields unanswered: advertising, parentalControls, lootBox, healthOrWellnessTopics, ageAssurance, messagingAndChat, userGeneratedContent, gunsOrOtherWeapons
+<span class="k">[BLOCK]</span> no primary category
+<span class="k">[BLOCK]</span> app has NO price schedule (new apps ship without one; required even for Free)
+<span class="k">[BLOCK]</span> app availability unset — app would be sold nowhere
+<span class="k">[BLOCK]</span> IAP …pro.lifetime is MISSING_METADATA: no review screenshot
+<span class="k">[BLOCK]</span> subscription …pro.monthly is MISSING_METADATA: no review screenshot
+<span class="k">[BLOCK]</span> review contact/notes missing
+<span class="k">[BLOCK]</span> version localization missing description, keywords, supportUrl
+<span class="k">[BLOCK]</span> app-info localization missing subtitle, privacyPolicyUrl
+<span class="k">[BLOCK]</span> no APP_IPHONE_67 screenshots
+<span class="k">[BLOCK]</span> no build attached to the version
+<span class="w">[WARN] </span> App Privacy must be PUBLISHED · medical-device banner · Paid Apps Agreement · first-IAP draft attach   <span class="d">← operator</span>
+<span class="g">13 auto-fixes applied · read back · re-check → PASS</span></div>
+  </div>
+  <div class="say"><b>Say it like this</b><span><em>"Thirteen blocking problems on a brand-new app record — including two that exist because I'd hit them before: new apps have no price and no availability. Thirteen fixed, four handed to me."</em></span></div>
+</section>
+
+<!-- 11 -->
+<section class="slide">
+  <div class="eyebrow"><span>The one I didn't plan for</span><span class="n">11 / 17</span></div>
+  <div class="body">
+    <h2>Two rejections no API field could ever show</h2>
+    <p class="lede">Preflight also hands the <em>real captures</em> plus the fact sheet to Gemini with one question: which on-screen claims can this build not back?</p>
+    <div class="log"><span class="w">[WARN]</span> panel 5: 'Multi-device sync … across iPhone, iPad, and Mac' — iCloud sync and the Mac app are explicitly not in v1.0
+<span class="w">[WARN]</span> panel 5: 'Custom keyboard: Insert snippets in any app' — not in v1.0
+<span class="w">[WARN]</span> panel 1: 'Password: Sunshine!42' — cleartext password visible in sample data
+<span class="w">[WARN]</span> panel 1: 'pwd=nT5rQxK9' — meeting password inside a Zoom link</div>
+    <div class="cols">
+      <div class="card"><h3>Why it matters</h3><p>Guideline 2.3.1 / 3.1: metadata and screenshots must match the binary. A paywall promising sync the app doesn't have is a rejection. So is a password on screen one.</p></div>
+      <div class="card"><h3>Why only vision finds it</h3><p>There is no field for "your paywall over-promises". The only way to catch it is to look at the pixels with the fact sheet in hand — exactly what a reviewer does.</p></div>
+    </div>
+  </div>
+  <div class="say"><b>Say it like this</b><span><em>"This is my favourite part. Gemini looked at the actual screenshots and caught a paywall promising features the build doesn't have — and a password in the sample data. A reviewer would have bounced both."</em></span></div>
+</section>
+
+<!-- 12 -->
+<section class="slide">
+  <div class="eyebrow"><span>Agent 6 · submission + safety rails</span><span class="n">12 / 17</span></div>
+  <div class="body">
+    <h2>Semi-irreversible, so it sits behind three gates</h2>
+    <div class="gate"><span class="g">DRY_RUN=false</span><span class="and">AND</span><span class="g">ALLOW_SUBMIT=true</span><span class="and">AND</span><span class="g">app ∈ ALLOWED_APP_IDS</span><span class="and">→</span><span class="g" style="border-color:var(--ok)">submitted:true</span></div>
+    <div class="cols">
+      <div class="card"><h3>Dry-run by default</h3><p>Every write returns the exact payload it <em>would</em> have sent; the job page shows it. I watched it plan a full release before letting it perform one.</p></div>
+      <div class="card"><h3>Hard allowlist</h3><p>Checked on webhook ingress and before every single write. A bad write to a live app record is damage, not a bug.</p></div>
+      <div class="card"><h3>Credential security</h3><p>The <span class="mono">.p8</span> lives in Secret Manager only. <span class="mono">.gitignore</span> blocks it; the Dockerfile never copies it; the service account reads it at runtime and mints a 15-minute ES256 JWT.</p></div>
+    </div>
+    <p>The submit call itself: <span class="mono">POST reviewSubmissions → POST reviewSubmissionItems → PATCH submitted:true</span>, then read the version state back. Uploaded ≠ attached ≠ submitted ≠ approved ≠ live — five different states.</p>
+  </div>
+  <div class="say"><b>Say it like this</b><span><em>"Submitting costs your place in the review queue if you're wrong, so it's behind two flags and an allowlist. And the Apple key exists in exactly one place: Secret Manager."</em></span></div>
+</section>
+
+<!-- 13 -->
+<section class="slide">
+  <div class="eyebrow"><span>Agent 7 · watcher</span><span class="n">13 / 17</span></div>
+  <div class="body">
+    <h2>Days-long, without polling. Rejections route themselves.</h2>
+    <div class="flow">
+      <div class="node apple"><b>Apple webhook</b><small>version state → REJECTED</small></div>
+      <div class="arrow">→</div>
+      <div class="node gcp"><b>Job flips to rejected</b><small>operator item: paste the reviewer's text</small></div>
+      <div class="arrow">→</div>
+      <div class="node gcp"><b>Gemma 4</b><small>10-token first-pass label (cheap, right size)</small></div>
+      <div class="arrow">→</div>
+      <div class="node gcp"><b>Gemini router</b><small>guideline · category · which stage · fix plan · needs new build?</small></div>
+      <div class="arrow">→</div>
+      <div class="node hot"><b>Re-open + re-queue</b><small>that stage and everything after it; Pub/Sub again</small></div>
+    </div>
+    <div class="log"><span class="d">POST /jobs/job-2-d7d5d7/rejection</span>  "Guideline 2.3.1 … description and screenshots reference a Share Sheet extension and a Home Screen widget not in the binary"
+<span class="g">gemma=metadata</span>  route_to=<span class="g">metadata</span>  guideline=2.3.1  needs_new_build=false
+<span class="d">stages metadata → screenshots → preflight → submit reopened · requeued</span>
+<span class="d">20:00:58</span>  preflight: PASS · pipeline finished: prepared   <span class="d">(new metadata: 28/27/97, zero mentions of share sheet or widget)</span></div>
+    <p>Honest footnote: Apple exposes the <em>state</em> by webhook but the reviewer's message only in Resolution Center (no public API). Today the text is pasted to one endpoint; a Gmail watcher is the obvious next step.</p>
+  </div>
+  <div class="say"><b>Say it like this</b><span><em>"When Apple rejects, the same webhook tells us. Gemma labels the rejection, Gemini decides which agent owns it, and the job re-runs itself from that stage. We tested it live — it rewrote the metadata and passed."</em></span></div>
+</section>
+
+<!-- 14 -->
+<section class="slide">
+  <div class="eyebrow"><span>Google Cloud map</span><span class="n">14 / 17</span></div>
+  <div class="body">
+    <h2>Each service, and the one reason it's there</h2>
+    <div class="tbl-wrap"><table>
+      <tr><th>Service</th><th>Role</th><th>Why this one</th></tr>
+      <tr><td><b>Cloud Run</b></td><td>Receiver, worker, status page — one image, three routes</td><td>Scale-to-zero; a release happens a few times a month, not per second</td></tr>
+      <tr><td><b>Pub/Sub</b></td><td>Job queue between receiver and worker</td><td>Retries with backoff, dead-letter after 5 — the worker can crash and nothing is lost</td></tr>
+      <tr><td><b>Firestore</b></td><td>Job + app state across a multi-day review</td><td>Document state fits "one job, many stages" better than a warehouse</td></tr>
+      <tr><td><b>Cloud Storage</b></td><td>Device captures in, composites out</td><td>Images don't belong in a database</td></tr>
+      <tr><td><b>Secret Manager</b></td><td>Apple private key, issuer id, webhook secret, Gemini key</td><td>Read at runtime; never in repo, image, or env</td></tr>
+      <tr><td><b>Cloud Scheduler</b></td><td>30-minute reconcile</td><td>The net under the webhook: missed deliveries, stale review states</td></tr>
+      <tr><td><b>Vertex AI · Gemini 3.5 Flash</b></td><td>Writer, critic, captions, reporter, vision, router</td><td>Flash tier first — cost; <span class="mono">location=global</span></td></tr>
+      <tr><td><b>Google ADK 2.7</b></td><td>Agent tree: Agent, LoopAgent, ParallelAgent, custom BaseAgent</td><td>Named patterns instead of hand-chained prompts</td></tr>
+      <tr><td><b>Gemma 4 · Veo 3.1 · Lyria</b></td><td>Rejection label · demo-video clip · music bed</td><td>Bonus models; Veo/Lyria deliberately kept out of the release path</td></tr>
+    </table></div>
+  </div>
+  <div class="say"><b>Say it like this</b><span><em>"Cloud Run because it scales to zero, Pub/Sub because the worker is allowed to crash, Firestore because a job is a document, Secret Manager because the Apple key is the crown jewels."</em></span></div>
+</section>
+
+<!-- 15 -->
+<section class="slide">
+  <div class="eyebrow"><span>Failure handling</span><span class="n">15 / 17</span></div>
+  <div class="body">
+    <h2>What breaks, and what happens next</h2>
+    <div class="tbl-wrap"><table>
+      <tr><th>When this breaks</th><th>This happens</th></tr>
+      <tr><td>Apple returns 500 or 429 (it does — pricing endpoints especially)</td><td>Exponential backoff with jitter, 6 attempts, then the stage fails cleanly</td></tr>
+      <tr><td>A webhook delivery is missed</td><td>Cloud Scheduler reconcile finds the VALID build without a job and creates one</td></tr>
+      <tr><td>The worker crashes mid-pipeline</td><td>Pub/Sub redelivers; the job resumes at the first unfinished stage (Firestore remembers)</td></tr>
+      <tr><td>An auto-fix fails</td><td>It becomes a finding on the report instead of a crash; the verdict stays BLOCKED</td></tr>
+      <tr><td>Apple says 2xx but didn't do the thing</td><td>Every fixer reads state back; preflight re-runs all checks after fixes</td></tr>
+      <tr><td>Gemma is unreachable</td><td>Label becomes "unknown"; the Gemini router still runs</td></tr>
+      <tr><td>The very first real delivery crashed (it did)</td><td>Apple retries; <span class="mono">asc webhooks deliveries redeliver</span> replayed the same signed event after the fix</td></tr>
+      <tr><td>Something only a human can do</td><td>Operator item on the job page — surfaced, never hidden</td></tr>
+    </table></div>
+  </div>
+  <div class="say"><b>Say it like this</b><span><em>"Thirty percent of the score is architecture, and failure handling is most of that. Every row here is something that actually happened during the build, not a slide I wrote for the judges."</em></span></div>
+</section>
+
+<!-- 16 -->
+<section class="slide">
+  <div class="eyebrow"><span>Timeline of the real run</span><span class="n">16 / 17</span></div>
+  <div class="body">
+    <h2>Aug 22, 2026 — SnipStash build 2</h2>
+    <div class="cols">
+      <div class="timeline">
+        <div><span class="t">01:05</span><span>Build 2 archived (iPhone-only, encryption flag set) and uploaded</span></div>
+        <div><span class="t">01:07</span><span>Apple webhook: <span class="mono">PROCESSING → COMPLETE</span>. First delivery crashed on a missing field; Apple marked it FAILED</span></div>
+        <div><span class="t">01:13</span><span>Fix deployed; Apple redelivers the same signed event → <span class="mono">job-2-d7d5d7</span> → Pub/Sub</span></div>
+        <div><span class="t">01:14</span><span>Intake ✓ · metadata loop approved in one round</span></div>
+        <div><span class="t">01:15</span><span>Five composites rendered, paywall capture staged as IAP review screenshot</span></div>
+        <div><span class="t">01:16</span><span>Preflight: 13 BLOCK + 4 operator + vision warnings → 13 auto-fixes → PASS (dry-run)</span></div>
+        <div><span class="t">01:25</span><span>Posted a 2.3.1 rejection → Gemma + Gemini routed to metadata → job re-queued itself</span></div>
+        <div><span class="t">01:31</span><span>Re-run done: clean metadata, PASS, state <span class="mono">prepared</span></span></div>
+      </div>
+      <div class="card"><h3>Numbers to say out loud</h3>
+        <div class="stats">
+          <div class="stat"><span class="big">90s</span><small>upload → Apple's webhook</small></div>
+          <div class="stat"><span class="big">13</span><small>blockers found, 13 fixed</small></div>
+          <div class="stat"><span class="big">2</span><small>rejections only vision could see</small></div>
+          <div class="stat"><span class="big">1</span><small>critique round to converge</small></div>
+        </div>
+        <p style="margin-top:.8rem">Live, in the demo: Cloud Run logs, the job page, Secret Manager (names only), Pub/Sub dead-letter, Firestore document.</p></div>
+    </div>
+  </div>
+  <div class="say"><b>Say it like this</b><span><em>"Upload at 01:05, Apple's webhook at 01:07, fully prepared version by 01:16, and a rejection routed and re-run by 01:31. I typed nothing between those timestamps."</em></span></div>
+</section>
+
+<!-- 17 -->
+<section class="slide">
+  <div class="eyebrow"><span>Thirty-second version + scoring map</span><span class="n">17 / 17</span></div>
+  <div class="body">
+    <h2>If you only have thirty seconds</h2>
+    <div class="card"><p class="lede" style="color:var(--ink)"><em>"I ship iOS apps. The last mile of a release — metadata, screenshots, pricing in 175 countries, a dozen traps that only show up after Submit — took me two days by hand last week. Shipwright is an event-driven agent on Google ADK: a build landing in App Store Connect is the trigger, seven agents take it to Waiting for Review, and Apple's verdict routes itself back days later. On its first real run it found thirteen blockers I'd paid for before, fixed them, and Gemini caught a paywall promising features the build doesn't have. Nothing typed. Cloud Run, Pub/Sub, Firestore, Secret Manager, Gemini 3.5, Gemma 4."</em></p></div>
+    <div class="tbl-wrap"><table>
+      <tr><th>Criterion</th><th>Weight</th><th>Where it lands</th></tr>
+      <tr><td>Innovation &amp; operational utility</td><td class="num">40%</td><td>Witnessed friction · real app record · autonomous high-value action, not chat</td></tr>
+      <tr><td>Architectural discipline</td><td class="num">30%</td><td>Decoupled services · Firestore state across days · Secret Manager · the failure table</td></tr>
+      <tr><td>Demo &amp; production readiness</td><td class="num">30%</td><td>Unedited live run · diagram · step-by-step README · Cloud Console on screen</td></tr>
+      <tr><td>Bonus</td><td class="num">+0.6</td><td>Gemma 4 (in the path) · Veo clip · Lyria bed — plus blog + social post</td></tr>
+    </table></div>
+  </div>
+  <div class="say"><b>Say it like this</b><span>Read the quote verbatim once, then put it in your own words. End on <em>"Nothing typed."</em></span></div>
+</section>
+
+</div>
+
+<div class="nav"><span id="counter">1 / 17</span><button id="prev" aria-label="Previous slide">←</button><button id="next" aria-label="Next slide">→</button></div>
+
+<script>
+  const deck = document.getElementById('deck');
+  const slides = [...deck.querySelectorAll('.slide')];
+  const counter = document.getElementById('counter');
+  const progress = document.getElementById('progress');
+  let i = 0;
+  function go(n) {
+    i = Math.max(0, Math.min(slides.length - 1, n));
+    slides[i].scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', inline: 'start', block: 'nearest' });
+    update();
+  }
+  function update() {
+    counter.textContent = `${i + 1} / ${slides.length}`;
+    progress.style.width = `${((i + 1) / slides.length) * 100}%`;
+    history.replaceState(null, '', `#${i + 1}`);
+  }
+  document.getElementById('prev').onclick = () => go(i - 1);
+  document.getElementById('next').onclick = () => go(i + 1);
+  addEventListener('keydown', e => {
+    if (['ArrowRight', 'PageDown', ' '].includes(e.key)) { e.preventDefault(); go(i + 1); }
+    if (['ArrowLeft', 'PageUp'].includes(e.key)) { e.preventDefault(); go(i - 1); }
+    if (e.key === 'Home') go(0);
+    if (e.key === 'End') go(slides.length - 1);
+  });
+  deck.addEventListener('scroll', () => {
+    const n = Math.round(deck.scrollLeft / deck.clientWidth);
+    if (n !== i) { i = n; update(); }
+  }, { passive: true });
+  const start = parseInt(location.hash.slice(1), 10);
+  if (start >= 1 && start <= slides.length) { i = start - 1; slides[i].scrollIntoView({ behavior: 'auto', inline: 'start' }); }
+  update();
+</script>
