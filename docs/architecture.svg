@@ -94,7 +94,7 @@
 <rect x="1000" y="617" width="520" height="96" rx="8" fill="#fde8e8" stroke="#d07070"/>
 <text x="1010" y="640" font-weight="600">7 Watcher</text><text x="1090" y="640" fill="#444">webhook state transitions · days-long · no polling</text>
 <text x="1010" y="662" fill="#444">rejection text → <tspan font-weight="600">Gemma 4</tspan> first-pass label → Gemini router → re-opens the right stage → re-queue</text>
-<text x="1010" y="684" fill="#444">approved → job closed · operator items → status page</text>
+<text x="1010" y="684" fill="#444">approved → job closed · operator items → status page + emailed release report</text>
 <text x="1010" y="704" fill="#888">(Resolution Center text has no public API: POST /jobs/{id}/rejection)</text>
 </g>
 
