@@ -216,4 +216,7 @@ def run_job(job_id: str) -> dict:
     state = "waiting_for_review" if sub.get("submitted") else ("prepared" if "withheld" in sub.get("reason", "") else "blocked")
     store.update(job_id, state=state, **{"stages.watch.status": "running" if sub.get("submitted") else "pending"})
     store.event(job_id, f"pipeline finished: {state}")
+    from . import notify
+    if notify.job_complete(store.get_job(job_id)):
+        store.event(job_id, "release report emailed to operator")
     return store.get_job(job_id)

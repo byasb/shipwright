@@ -23,3 +23,16 @@ def test_catches_every_rule():
     for needle in ["limit 30", "repeated across name and subtitle", "NO spaces",
                    "brand words", "plural", "hardcoded price", "'app'"]:
         assert needle in joined, f"missing: {needle}\n{joined}"
+
+
+def test_notify_report_and_graceful_skip(monkeypatch):
+    # ponytail: one check that fails if the report or the no-config path breaks
+    from shipwright import notify
+    job = {"id": "j1", "app_id": "6803901837", "build_id": "b", "dry_run": True, "state": "prepared",
+           "stages": {"preflight": {"status": "done", "output": {"verdict": "PASS", "report": "ok"}},
+                      "submit": {"status": "done", "output": {"submitted": False, "reason": "withheld"}}}}
+    body = notify._report(job)
+    assert "PASS" in body and "withheld" in body and "6803901837" in body
+    for k in ("SMTP_HOST", "SMTP_USER", "SMTP_PASS", "NOTIFY_EMAIL"):
+        monkeypatch.delenv(k, raising=False)
+    assert notify.job_complete(job) is False

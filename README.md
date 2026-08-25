@@ -62,6 +62,35 @@ Build 2 of SnipStash was uploaded at 19:35:55 UTC; Apple's webhook fired `PROCES
 have rejected that no API field could have told me. Every one of the BLOCK rows is a rejection or a silent
 trap from [docs/ERROR-INDEX.md](docs/ERROR-INDEX.md).
 
+## The numbers (measured, not vibes)
+
+- **25 failure modes** documented from 14 real releases ([docs/ERROR-INDEX.md](docs/ERROR-INDEX.md)); 23 are
+  in the release-agent's scope, and preflight covers **23/23**: 13 detected + auto-fixed over the API,
+  2 caught by Gemini vision on the real captures, 4 surfaced as web-only operator gates, 4 enforced as
+  validator/design rules. The other 2 are build-side and live in the app repo.
+- **Live run against the real app record:** 13 blocking findings raised, 13 auto-fixed, 4 operator items
+  reported, 2 findings no API field could expose — including a Guideline 2.3.1 rejection (screenshots
+  claiming features not in v1.0) caught *before* Apple could issue it.
+- **Critic loop converged in one round on every run** — because the critic holds the deterministic
+  validator as a tool instead of judging by taste.
+
+## Where the agent decides
+
+Not a fixed script wearing an agent costume — the decision points, named:
+
+1. **Preflight verdicts.** Every check ends in a judgment: auto-fixable, operator-only, or blocking.
+2. **The critic loop.** Metadata is rejected and redrafted until it passes the validator *and* the
+   critic's claims/tone review — `exit_loop` is the model's call, not a counter.
+3. **Rejection routing.** When Apple rejects, Gemma classifies, Gemini 3.5 parses the reviewer's prose
+   and routes the job back to the responsible agent — metadata, screenshots, preflight, or operator —
+   with a concrete fix plan and a needs-new-build verdict.
+4. **Knowing what not to touch.** The agent automates everything Apple's API allows and *refuses* the
+   rest: hard app allowlist checked before every write, `DRY_RUN` and `ALLOW_SUBMIT` as separate gates,
+   and web-only steps surfaced as an operator checklist instead of guessed at.
+
+Every decision is **replayable evidence**: per-stage state, payloads, and verdicts persist in Firestore
+and render on the job page — restart the service mid-job and it resumes at the first unfinished stage.
+
 ## Stack (all three mandatory requirements, several times over)
 
 - **Gemini 3.5 Flash** via **Vertex AI** (`location=global`) — writer, critic, captions, reporter, vision claims, rejection router
