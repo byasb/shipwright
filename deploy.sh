@@ -16,8 +16,8 @@ gcloud run deploy "$SERVICE" --source . --project "$PROJECT" --region "$REGION" 
   --service-account "$SA" \
   --min-instances 0 --max-instances 2 --concurrency 4 --timeout 1800 --memory 2Gi --cpu 2 \
   --allow-unauthenticated \
-  --set-env-vars "GOOGLE_CLOUD_PROJECT=$PROJECT,GOOGLE_CLOUD_LOCATION=global,GOOGLE_GENAI_USE_VERTEXAI=true,MODEL=${MODEL:-gemini-3.5-flash},GEMMA_MODEL=${GEMMA_MODEL:-gemma-4-31b-it},PUBSUB_TOPIC=$TOPIC,SCREENSHOT_BUCKET=$BUCKET,ASC_KEY_ID=${ASC_KEY_ID:-YL98VF4UNZ},DRY_RUN=$DRY_RUN,ALLOW_SUBMIT=$ALLOW_SUBMIT,ALLOWED_APP_IDS=$ALLOWED_APP_IDS,REVIEW_CONTACT_FIRST=${REVIEW_CONTACT_FIRST:-Ankit},REVIEW_CONTACT_LAST=${REVIEW_CONTACT_LAST:-Bhandari},REVIEW_CONTACT_EMAIL=${REVIEW_CONTACT_EMAIL:-ankit@utenx.com},REVIEW_CONTACT_PHONE=${REVIEW_CONTACT_PHONE:-},SUPPORT_URL=${SUPPORT_URL:-https://byasb.com/snipstash},PRIVACY_URL=${PRIVACY_URL:-https://byasb.com/snipstash/privacy}" \
-  --set-secrets "GEMINI_API_KEY=gemini-api-key:latest"
+  --set-env-vars "GOOGLE_CLOUD_PROJECT=$PROJECT,GOOGLE_CLOUD_LOCATION=global,GOOGLE_GENAI_USE_VERTEXAI=true,MODEL=${MODEL:-gemini-3.5-flash},GEMMA_MODEL=${GEMMA_MODEL:-gemma-4-31b-it},PUBSUB_TOPIC=$TOPIC,SCREENSHOT_BUCKET=$BUCKET,ASC_KEY_ID=${ASC_KEY_ID:-YL98VF4UNZ},DRY_RUN=$DRY_RUN,ALLOW_SUBMIT=$ALLOW_SUBMIT,ALLOWED_APP_IDS=$ALLOWED_APP_IDS,REVIEW_CONTACT_FIRST=${REVIEW_CONTACT_FIRST:-Ankit},REVIEW_CONTACT_LAST=${REVIEW_CONTACT_LAST:-Bhandari},REVIEW_CONTACT_EMAIL=${REVIEW_CONTACT_EMAIL:-ankit@utenx.com},REVIEW_CONTACT_PHONE=${REVIEW_CONTACT_PHONE:-},SUPPORT_URL=${SUPPORT_URL:-https://byasb.com/snipstash},PRIVACY_URL=${PRIVACY_URL:-https://byasb.com/snipstash/privacy},SMTP_HOST=${SMTP_HOST:-},SMTP_PORT=${SMTP_PORT:-587},SMTP_USER=${SMTP_USER:-},NOTIFY_EMAIL=${NOTIFY_EMAIL:-}" \
+  --set-secrets "GEMINI_API_KEY=gemini-api-key:latest$( gcloud secrets describe smtp-pass --project "$PROJECT" >/dev/null 2>&1 && echo ",SMTP_PASS=smtp-pass:latest" )"
 # NOTE: asc-private-key / asc-issuer-id / asc-webhook-secret are read via the Secret Manager API at
 # runtime (config.secret) — not mounted as env, so they never appear in `gcloud run services describe`.
 

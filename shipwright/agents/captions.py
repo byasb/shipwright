@@ -25,7 +25,11 @@ you only write the text that sits above each one on a branded backdrop.
 
 Ordering rule: panel 1 establishes the category so a searcher instantly recognises what this is;
 panels 2-3 show the mechanic; the last panel is trust/privacy only if the facts support it.
-Produce exactly one entry per screen id, in the order given. Echo words from the final metadata (search-intent match). Never write a price. Never claim what the facts don't list.
+Produce exactly one entry per screen id, in the order given. Echo words from the final metadata (search-intent match). Never write a price.
+HARD RULE — the review's vision check reads every caption as a feature claim: a caption may only
+name a capability that the facts explicitly list as available NOW. Metadata keywords are for
+search, not truth: if a keyword names a feature the facts don't list (templates, sync, keyboard,
+AI), echo the category word instead. When unsure, describe what is visible in the capture.
 
 SCREENS (id → what the capture shows):
 {screens}
