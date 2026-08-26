@@ -143,6 +143,28 @@ Apple's webhook payload for a build carries the `buildUploads` id; the matching 
 (observed Aug 2026), with a fallback to "newest VALID build on an allowlisted app" and the 30-minute reconcile
 as the net.
 
+## Try it without an Apple account (replay mode)
+
+Judges and the curious: the full agent tree runs on your machine against **recorded responses
+from a real release run** — no Apple Developer account, no GCP project.
+
+```bash
+uv venv -p 3.13 .venv && uv pip install -p .venv/bin/python -e .
+export GEMINI_API_KEY=...        # aistudio.google.com — the only credential needed
+.venv/bin/python scripts/demo_replay.py
+```
+
+You get the real thing, not a mock: the critique loop redrafts metadata until it passes, the
+preflight fan-out raises the same findings the live run raised, Gemini vision reads the real
+screenshots and flags the Guideline 2.3.x claims, and the submit stage stops at "fully
+prepared, submission withheld" — replay hard-codes `DRY_RUN`. Apple reads come from
+`fixtures/snipstash.json` (contact details redacted at record time, by field name); writes
+return the same dry-run payloads the live client produces; job state lives in an in-memory
+Firestore stand-in. One run makes ~10 model calls — a paid-tier key is smoother than the free
+tier's daily cap. Have GCP but no Apple? `REPLAY_USE_VERTEX=1 GOOGLE_CLOUD_PROJECT=<yours>`
+routes the model calls through Vertex with your ADC instead. Fixtures were re-recordable at
+any time from a real account with `scripts/record_fixtures.py`.
+
 ## Data sources
 
 - App Store Connect API (builds, versions, localizations, screenshots, IAPs, subscriptions, pricing, availability, age rating, review details, review submissions, webhooks)

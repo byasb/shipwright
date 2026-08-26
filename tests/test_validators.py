@@ -36,3 +36,31 @@ def test_notify_report_and_graceful_skip(monkeypatch):
     for k in ("SMTP_HOST", "SMTP_USER", "SMTP_PASS", "NOTIFY_EMAIL"):
         monkeypatch.delenv(k, raising=False)
     assert notify.job_complete(job) is False
+
+
+def test_replay_store_and_asc(tmp_path):
+    # ponytail: one check across the replay seam — dotted updates, ArrayUnion, fixture lookup, redaction
+    import json
+    from google.cloud import firestore
+    from shipwright import replay
+
+    db = replay.MemoryFirestore()
+    doc = db.collection("jobs").document("j1")
+    doc.set({"stages": {"intake": {"status": "pending"}}})
+    doc.update({"stages.intake.status": "done", "events": firestore.ArrayUnion([{"msg": "a"}])})
+    doc.update({"events": firestore.ArrayUnion([{"msg": "b"}])})
+    d = doc.get().to_dict()
+    assert d["stages"]["intake"]["status"] == "done" and [e["msg"] for e in d["events"]] == ["a", "b"]
+
+    fx = tmp_path / "f.json"
+    fx.write_text(json.dumps({"app_facts": {"name": "X"}, "build_id": "b1", "gets": {
+        "GET /v1/apps/1?limit=10": {"data": [{"id": "44a53643-1738-43ea-ac1d-f5ea877519de"}]}}}))
+    asc = replay.ReplayASC(fx)
+    assert asc.build_id == "b1"
+    assert asc.get("/v1/apps/1", limit=10)["data"][0]["id"].startswith("44a53643")  # UUID survives
+    assert asc.get("/v1/apps/1")["data"]  # bare-path fallback
+    w = asc.post("/x", {"a": 1}, app_id="6803901837")
+    assert w["dry_run"] is True
+
+    red = replay._redact({"contactPhone": "+91 98765", "id": "44a53643-1738", "nested": [{"contactEmail": "a@b.c"}]})
+    assert red["contactPhone"] == "[redacted]" and red["id"] == "44a53643-1738" and red["nested"][0]["contactEmail"] == "[redacted]"
