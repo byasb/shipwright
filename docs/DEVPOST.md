@@ -1,6 +1,9 @@
 # Devpost submission — Shipwright
 
-**Track:** The Taskmaster · **Category bonus:** Gemma 4 + Veo 3.1 + Lyria (three additional Google models)
+**Track:** The Taskmaster · **Bonus models (all three, +0.6 cap):** Gemma 4 — in the release path as the
+rejection classifier · Veo 3.1 — demo-video intro · Lyria — demo-video score. The narration is Google Cloud
+Text-to-Speech (Chirp 3 HD): every visual and every sound in this submission was produced by the Google stack
+it demonstrates.
 
 ## Inspiration
 I have 14 apps on the App Store. The week before this hackathon I spent two days taking a new one from
